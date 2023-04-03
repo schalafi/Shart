@@ -1,0 +1,68 @@
+<!doctype html>
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <style>
+            ul li {
+                color: gray;
+                background-color: cornsilk;
+            }
+        </style>
+
+    </head>
+
+    <body>
+
+        <title>COMMENTS 🥵 </title>
+
+        <div>
+            <a href="/">Home</a> |
+            <a href="/detection">Detection</a> |
+         </div>
+
+
+        <ul>
+            {% for comment in ALL_COMMENTS %}
+              <li>{{comment}}</li>
+            {% endfor %}
+        </ul>
+        
+        {% block content %}
+        
+
+
+        <div class="content-section">
+          
+            
+                <form method="POST" action="{{url_for('comment_handler' )}}">
+                    {{ form.hidden_tag() }}
+                    <fieldset class="form-group">
+                        <legend class="border-bottom mb-4">Comment</legend>
+                        <div class="form-group">
+                            {{ form.body.label(class="form-control-label") }}
+                            {% if form.body.errors %}
+                                {{ form.body(class="form-control form-control-lg is-invalid") }}
+                                <div class="invalid-feedback">
+                                    {% for error in form.body.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.body(class="form-control form-control-lg") }}
+                            {% endif %}
+                        </div>
+                    </fieldset>
+                    <div class="form-group">
+                        {{ form.submit(class="btn btn-outline-info") }}
+                    </div>
+                </form>
+            </div>
+        {% endblock content %}
+
+    </body>
+
+</html>
+

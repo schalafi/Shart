@@ -1,0 +1,8 @@
+flask
+Flask-WTF
+flask_sqlalchemy
+pillow
+gunicorn
+boto3
+requests
+opencv-python-headless

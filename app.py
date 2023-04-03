@@ -15,8 +15,9 @@ from werkzeug.utils import secure_filename
 from wtforms.validators import InputRequired
 #from PIL import Image
 
-from utilities import request_with_file, image_from_response, image_to_byte_array
+#from utilities import request_with_file, image_from_response, image_to_byte_array
 from json_utils import list_to_json, json_to_list
+from utils import get_random_image
 
 s3 = boto3.client('s3')
 
@@ -24,14 +25,13 @@ BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
 IMAGE_DATA_FILE = 'image_names.json'
 IMAGES_FOLDER = os.path.join('static', 'media')
 
-ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
 DEFAULT_IMAGE=  "amongus.png"
 
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "random string"
-app.config['UPLOAD_FOLDER'] = IMAGES_FOLDER
+
 
 ## COMMETS DB
 ##app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -56,22 +56,54 @@ app.config['UPLOAD_FOLDER'] = IMAGES_FOLDER
     <h1>Comments</h1>
 '''
 
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-def allowed_image_ext(filename):
+def allowed_file_type(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ['png', 'jpg', 'jpeg']
 
-#@app.route("/")
-#def index():
-#    return render_template('index.html',
-#        a_var = "Waiting to uploading image",
-#        random_image="static/media/amongus_3d.jpg")
 
 @app.route("/", methods=['POST','GET'])
 def index():
-    return general_upload(hidden= False)
+    template_name = 'index.html'
+
+    if request.method == 'GET':
+        return render_template(template_name,
+            random_image="static/media/amongus_3d.jpg",
+            a_var = "Waiting to get image.")
+
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        
+        # Get the file from the request
+        file = request.files['file']
+        filename = file.filename
+
+        if filename == '' or  not  allowed_file_type(filename):
+            flash('No selected file')
+            return redirect(request.url)
+        # Upload the file to S3
+        try:
+            s3.upload_fileobj(file, BUCKET_NAME, file.filename)
+            message = 'File uploaded successfully'
+        except NoCredentialsError:
+            message = 'Credentials not available'
+
+        # Render a response to the user
+        return render_template('index.html', message=message)
+
+    
+
+
+    
+
+    
+
+    
+    
+
+
     
 #TUTORIALES 
 #https://hackersandslackers.com/flask-routes/

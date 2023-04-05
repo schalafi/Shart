@@ -73,3 +73,25 @@ def comment_handler():
         
     return render_template("comments.html", title="Comments", 
             form=form,ALL_COMMENTS=ALL_COMMENTS)
+## COMMETS DB
+##app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+##app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
+#db = SQLAlchemy(app)
+
+
+#download_database()
+#db.create_all()
+#SQL alchemy
+#https://flask-sqlalchemy.palletsprojects.com/en/2.x/quickstart/
+
+
+
+#ALL_COMMENTS = get_all_comments()
+#print("ALL_COMMENTS: ", ALL_COMMENTS)
+
+#simple_comments = 
+'''
+    <!doctype html>
+    <title>Comments</title>
+    <h1>Comments</h1>
+'''

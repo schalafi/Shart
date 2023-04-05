@@ -1,65 +1,40 @@
 import io
-from datetime import datetime
-import random
+
+import numpy as np
 import os
-from base64 import b64encode
-import datetime as dt
-
 import boto3
-
+from botocore.exceptions import NoCredentialsError
 from flask import Flask,flash, render_template, request,redirect, url_for,send_file,g
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.utils import secure_filename
-from wtforms.validators import InputRequired
-#from PIL import Image
+from PIL import Image
 
-#from utilities import request_with_file, image_from_response, image_to_byte_array
-from json_utils import list_to_json, json_to_list
-from utils import get_random_image
 
 s3 = boto3.client('s3')
 
 BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
 IMAGE_DATA_FILE = 'image_names.json'
 IMAGES_FOLDER = os.path.join('static', 'media')
-
-
 DEFAULT_IMAGE=  "amongus.png"
 
+HISTOGRAMS = {}
+def load_histograms():
+    # Load histograms of all images in the S3 bucket into memory
+    histograms = {}
+    for obj in s3.list_objects_v2(Bucket=BUCKET_NAME)['Contents']:
+        if obj['Key'].endswith('.npy'):
+            response = s3.get_object(Bucket=BUCKET_NAME, Key=obj['Key'])
+            histogram = np.load(response['Body'])
+            # Add the histogram to the histograms dictionary
+            histograms[obj['Key'][:-4]] = histogram  # remove the '.npy' extension from the key
+    print("HISTOGRAMS: ", histograms)
+    return histograms 
+HISTOGRAMS = load_histograms()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "random string"
 
-
-## COMMETS DB
-##app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-##app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
-#db = SQLAlchemy(app)
-
-
-#download_database()
-#db.create_all()
-#SQL alchemy
-#https://flask-sqlalchemy.palletsprojects.com/en/2.x/quickstart/
-
-
-
-#ALL_COMMENTS = get_all_comments()
-#print("ALL_COMMENTS: ", ALL_COMMENTS)
-
-#simple_comments = 
-'''
-    <!doctype html>
-    <title>Comments</title>
-    <h1>Comments</h1>
-'''
-
 def allowed_file_type(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ['png', 'jpg', 'jpeg']
-
 
 @app.route("/", methods=['POST','GET'])
 def index():
@@ -80,18 +55,56 @@ def index():
         file = request.files['file']
         filename = file.filename
 
+
+        # Create a buffer containing the file contents
+        buffer = io.BytesIO()
+        file.save(buffer)
+        buffer.seek(0)
+
         if filename == '' or  not  allowed_file_type(filename):
             flash('No selected file')
             return redirect(request.url)
         # Upload the file to S3
         try:
-            s3.upload_fileobj(file, BUCKET_NAME, file.filename)
+            s3.upload_fileobj(buffer, BUCKET_NAME, file.filename)
             message = 'File uploaded successfully'
         except NoCredentialsError:
             message = 'Credentials not available'
+        
+         # Compute the histogram of the uploaded image
+        image = np.array(Image.open(file.stream))
+        print("IMAGE SHAPE: ", image.shape)
+        hist, _ = np.histogramdd(np.squeeze(image[:,:,0]).T, bins=(8, 8), range=((0, 256), (0, 256)))
+        
+        # Save the histogram as a .npy file in the S3 bucket
+        histogram_key = f'{file.filename[:-4]}.npy'
+        with io.BytesIO() as buffer:
+            np.save(buffer, hist)
+            buffer.seek(0)
+            s3.upload_fileobj(buffer, BUCKET_NAME, histogram_key)
 
-        # Render a response to the user
-        return render_template('index.html', message=message)
+        # Add the histogram to the histograms dictionary
+        HISTOGRAMS[file.filename[:-4]] = hist
+        # Retrieve a random image from the S3 bucket
+        random_key = np.random.choice(list(HISTOGRAMS.keys()))
+        response = s3.get_object(Bucket=BUCKET_NAME, Key=random_key)
+        image_url = f'https://{BUCKET_NAME}.s3.amazonaws.com/{random_key}'
+
+            
+        return render_template(template_name,
+                random_image= image_url,
+                a_var = "Success uploading image")
+    
+
+    
+   
+
+
+    return render_template(template_name,
+            random_image="static/media/amongus_3d.jpg",
+            a_var = "Not success uploading image")
+
+
 
     
 

@@ -1,4 +1,5 @@
 import io
+import random 
 
 import numpy as np
 import os
@@ -15,26 +16,12 @@ IMAGE_DATA_FILE = 'image_names.json'
 IMAGES_FOLDER = os.path.join('static', 'media')
 DEFAULT_IMAGE=  "amongus.png"
 
-HISTOGRAMS = {}
-def load_histograms():
-    # Load histograms of all images in the S3 bucket into memory
-    histograms = {}
-    for obj in s3.list_objects_v2(Bucket=BUCKET_NAME)['Contents']:
-        if obj['Key'].endswith('.npy'):
-            response = s3.get_object(Bucket=BUCKET_NAME, Key=obj['Key'])
-            histogram = np.load(response['Body'])
-            # Add the histogram to the histograms dictionary
-            histograms[obj['Key'][:-4]] = histogram  # remove the '.npy' extension from the key
-    print("HISTOGRAMS: ", histograms)
-    return histograms 
-HISTOGRAMS = load_histograms()
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "random string"
 
 def allowed_file_type(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ['png', 'jpg', 'jpeg']
+           filename.rsplit('.', 1)[1].lower() in ['png', 'jpg', 'jpeg','webp']
 
 @app.route("/", methods=['POST','GET'])
 def index():
@@ -55,7 +42,6 @@ def index():
         file = request.files['file']
         filename = file.filename
 
-
         # Create a buffer containing the file contents
         buffer = io.BytesIO()
         file.save(buffer)
@@ -66,48 +52,39 @@ def index():
             return redirect(request.url)
         # Upload the file to S3
         try:
-            s3.upload_fileobj(buffer, BUCKET_NAME, file.filename)
+            print("Uploading : ",filename)
+            s3.upload_fileobj(buffer, BUCKET_NAME,filename)
             message = 'File uploaded successfully'
         except NoCredentialsError:
             message = 'Credentials not available'
         
-         # Compute the histogram of the uploaded image
-        image = np.array(Image.open(file.stream))
-        print("IMAGE SHAPE: ", image.shape)
-        hist, _ = np.histogramdd(np.squeeze(image[:,:,0]).T, bins=(8, 8), range=((0, 256), (0, 256)))
-        
-        # Save the histogram as a .npy file in the S3 bucket
-        histogram_key = f'{file.filename[:-4]}.npy'
-        with io.BytesIO() as buffer:
-            np.save(buffer, hist)
-            buffer.seek(0)
-            s3.upload_fileobj(buffer, BUCKET_NAME, histogram_key)
+        image_url = get_random_image()
+        print("random image url: ",image_url)
 
-        # Add the histogram to the histograms dictionary
-        HISTOGRAMS[file.filename[:-4]] = hist
-        # Retrieve a random image from the S3 bucket
-        random_key = np.random.choice(list(HISTOGRAMS.keys()))
-        response = s3.get_object(Bucket=BUCKET_NAME, Key=random_key)
-        image_url = f'https://{BUCKET_NAME}.s3.amazonaws.com/{random_key}'
-
-            
         return render_template(template_name,
                 random_image= image_url,
                 a_var = "Success uploading image")
     
-
-    
-   
-
-
     return render_template(template_name,
             random_image="static/media/amongus_3d.jpg",
             a_var = "Not success uploading image")
 
 
+def get_random_image():
+    """
+    Get a random image from the S3 bucket
+    Return image url
+    """
+    # Get a list of all objects in the bucket
+    objects = s3.list_objects_v2(Bucket=BUCKET_NAME)['Contents']
 
-    
+    # Select a random object from the list
+    random_object = random.choice(objects)
 
+    # Get the URL of the random object
+    random_object_url = f'https://{BUCKET_NAME}.s3.amazonaws.com/{random_object["Key"]}'
+
+    return random_object_url
 
     
 

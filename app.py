@@ -10,6 +10,7 @@ from PIL import Image
 
 s3 = boto3.client('s3')
 
+
 BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
 IMAGE_DATA_FILE = 'image_names.json'
 IMAGES_FOLDER = os.path.join('static', 'media')

@@ -2,8 +2,12 @@
 
 <html>
    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <!-- Required meta tags -->
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+      <!-- Bootstrap CSS -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
       <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans:400,700&amp;display=swap'>
       <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css'>
 
@@ -11,48 +15,55 @@
       <!-- <link rel="stylesheet" href="../static/style.css">-->
    </head>
    <body>
-      <div class="wrapper">
-      <h1>Shart  🖼️🤖🖌️🥵 </h1>
-      <div>
-         <a href="/comments">Comments</a> |
-         <a href="/detection">Detection</a> |
-      </div>
-     
-        <br>
-        <img style="border:5px solid black;width:250px;" id="preview" src="/static/media/amongus.png">
+      <div class="container">
+         <div class="row">
 
-        <form action = "/" method = "POST" enctype = "multipart/form-data">
-            <input type = "file"  name = "file"/>
-            <input type="hidden" id="avatar-url" name="avatar-url" value="/static/media/amongus.png">
+            <div class="wrapper">
+               <h1 class="text-center text-primary font-weight-bold">Shart  🖼️🤖🖌️🥵 </h1>
+               <div>
+                  <a href="/comments">Comments</a> |
+                  <a href="/detection">Detection</a> |
+               </div>
             
-            <input type = "submit"/>
-            
-            <br><br><br><br>
-            😋 Upload your image 🖼️ receive another one.   🪄 </b>
-            <br>
-            ⚠️NSFW  (TODO) </b> <br>
-            (up to 5MB 💾)
-            <br><br>
-          
-            <div>
-               <h3>Your image:</h3>
-               {% if random_image %}
-               <img src={{ random_image|string }} alt="imagen random" >
-               {% else %}
-               <img src= "static/media/amongus_3d.jpg" alt="imagen random" >
-               {% endif %}
+               <br>
+               <img style="border:5px solid black;width:250px;" id="preview" src="/static/media/amongus.png">
+
+               <form action = "/" method = "POST" enctype = "multipart/form-data">
+                  <div class="custom-file">
+                     <input type = "file"  name = "file" class="custom-file-input" id="customFile"/>
+                     <label class="custom-file-label" for="customFile">Choose image</label>
+
+                  </div>
+                     <input type="hidden" id="avatar-url" name="avatar-url" value="/static/media/amongus.png">
+                     
+                     <input type = "submit"/>
+                     
+                     <br><br><br><br>
+                     😋 Upload your image 🖼️ receive another one.   🪄 </b>
+                     <br>
+                     ⚠️NSFW  detection (TODO) </b> <br>
+                     (up to 5MB 💾)
+                     <br><br>
+                  
+                     <div>
+                        <h3 class="text-center text-info font-weight-normal">Your image:</h3>
+                        {% if random_image %}
+                        <img src={{ random_image|string }} class="img-fluid mx-auto d-block" alt="random image" >
+                        {% else %}
+                        <img src= "static/media/amongus_3d.jpg" class="img-fluid mx-auto d-block" alt="random image" style="max-width: 500px;" >
+                        {% endif %}
+                        
+                     </div>
+
+                  <div>
+                     <h1> {{ a_var|string }} </h1>
+                  </div>
                
-           </div>
-
-           <div>
-            <h1> {{ a_var|string }} </h1>
-           </div>
-      
-            
-            <a target="_blank" href="http://welcometointernet.org/">Link 👉🎁 😨</a>
-         </form>
-
-      
+                     
+                     <a target="_blank" href="http://welcometointernet.org/">Link 👉🎁 😨</a>
+                  </form>      
+            </div>
+         </div>
       </div>
       <script>
       let toggle = button => {

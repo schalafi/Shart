@@ -50,15 +50,15 @@
                      <div>
                         <h3 class="text-center text-info font-weight-normal">Your image:</h3>
                         {% if random_image %}
-                        <img src={{ random_image|string }} class="img-fluid mx-auto d-block" alt="random image" >
+                        <img src={{random_image|string}} class="img-fluid mx-auto d-block" alt="A random image from community" >
                         {% else %}
-                        <img src= "static/media/amongus_3d.jpg" class="img-fluid mx-auto d-block" alt="random image" style="max-width: 500px;" >
+                        <img src= "static/media/amongus_3d.jpg" class="img-fluid mx-auto d-block" alt="Default image" style="max-width: 500px;" >
                         {% endif %}
                         
                      </div>
 
                   <div>
-                     <h3> {{a_var|string}} </h3>
+                     <h3 class="text-info"> {{a_var|string}} </h3>
                   </div>
                
                      

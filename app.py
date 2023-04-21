@@ -58,12 +58,11 @@ def index():
             message = 'File uploaded successfully'
         except NoCredentialsError:
             message = 'Credentials not available'
-        
+
         image_url = get_random_image()
-        print("random image url: ",image_url)
 
         return render_template(template_name,
-                random_image= image_url,
+                random_image=image_url,
                 a_var = "Success uploading image")
     
     return render_template(template_name,
@@ -83,8 +82,7 @@ def get_random_image():
     random_object = random.choice(objects)
 
     # Get the URL of the random object
-    random_object_url = f'https://{BUCKET_NAME}.s3.amazonaws.com/{random_object["Key"]}'
-
+    random_object_url = s3.generate_presigned_url('get_object', Params = {'Bucket': BUCKET_NAME,'Key': random_object["Key"]}, ExpiresIn = 3600)
     return random_object_url
 
     

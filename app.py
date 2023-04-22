@@ -84,15 +84,6 @@ def get_random_image():
     # Get the URL of the random object
     random_object_url = s3.generate_presigned_url('get_object', Params = {'Bucket': BUCKET_NAME,'Key': random_object["Key"]}, ExpiresIn = 3600)
     return random_object_url
-
-    
-
-    
-
-    
-    
-
-
     
 #TUTORIALES 
 #https://hackersandslackers.com/flask-routes/

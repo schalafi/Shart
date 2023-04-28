@@ -19,6 +19,7 @@ IMAGE_DATA_FILE = 'image_names.json'
 IMAGES_FOLDER = os.path.join('static', 'media')
 DEFAULT_IMAGE=  "amongus.png"
 FEATURE_VECTORS_FILE = 'feature_vectors.json'
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "random string"
 
@@ -116,8 +117,11 @@ def store_features(filename:str,image:Image):
     with open(FEATURE_VECTORS_FILE, 'w') as f:
         json.dump(FEATURE_VECTORS, f)
     
-    #save FEATURE_VECTORS_FILE in S3
-    s3.upload_file(FEATURE_VECTORS_FILE, BUCKET_NAME, FEATURE_VECTORS_FILE)
+    # Upload updated feature vectors file to S3
+    updated_feature_vectors_buffer = io.BytesIO()
+    json.dump(FEATURE_VECTORS, updated_feature_vectors_buffer)
+    updated_feature_vectors_buffer.seek(0)
+    s3.upload_fileobj(updated_feature_vectors_buffer, BUCKET_NAME, FEATURE_VECTORS_FILE)
 
     return uploaded_image_features
     

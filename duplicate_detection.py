@@ -20,6 +20,19 @@ transform = transforms.Compose([
                          std=[0.229, 0.224, 0.225])
 ])
 
+
+def compute_features(image:Image):
+    """
+    image: PIL Image
+
+    Compute features for the image
+    """
+    # Preprocess image and extract features
+    image_tensor = transform(image).unsqueeze(0)
+    features = model(image_tensor).detach().numpy().squeeze()
+    
+    return features
+
 def are_duplicates(image1_path:str, image2_path:str)->bool:
     """
     image1: path to first image
@@ -44,6 +57,30 @@ def are_duplicates(image1_path:str, image2_path:str)->bool:
         return True
     return False 
 
+
+def are_duplicates_imgs(image1:Image, image2:Image)->bool:
+    """
+    image1: path to first image
+    image2: path to second image
+
+    Compare two images and return True if they are duplicates
+    False otherwise
+    """
+    # Preprocess images and extract features
+    image1_tensor = transform(image1).unsqueeze(0)
+    image2_tensor = transform(image2).unsqueeze(0)
+    features1 = model(image1_tensor).detach().numpy().squeeze()
+    features2 = model(image2_tensor).detach().numpy().squeeze()
+
+    # Compare feature vectors
+    distance = torch.dist(torch.tensor(features1), torch.tensor(features2))
+    distance = distance.item()
+    #print("Distance: ",distance)
+    if distance < THRESHOLD:
+        #print('Images are duplicates')
+        print("Distance: ",distance)
+        return True
+    return False 
 if __name__ == '__main__':
     # Load two example images
     img1_path = 'image1.png'

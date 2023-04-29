@@ -1,6 +1,7 @@
 import io
 import json
 import random 
+import time
 
 import numpy as np
 import os
@@ -11,6 +12,7 @@ from PIL import Image
 
 from duplicate_detection import are_duplicates_imgs
 from duplicate_detection import compute_features
+from duplicate_detection import download_feature_vectors
 
 s3 = boto3.client('s3')
 
@@ -20,14 +22,25 @@ IMAGES_FOLDER = os.path.join('static', 'media')
 DEFAULT_IMAGE=  "amongus.png"
 FEATURE_VECTORS_FILE = 'feature_vectors.json'
 
+from PIL import Image
+
+exts = Image.registered_extensions()
+supported_extensions = {ex for ex, f in exts.items() if f in Image.OPEN}
+print("Supported extensions: ",supported_extensions)
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "random string"
 
-FEATURE_VECTORS = download_feature_vectors()
+FEATURE_VECTORS = download_feature_vectors(
+    bucket_name=BUCKET_NAME,
+    feature_vectors_file=FEATURE_VECTORS_FILE,
+    s3=s3)
 
 def allowed_file_type(filename):
+    ext ='.'+ filename.rsplit('.', 1)[1].lower()
+    print("ext: ",ext)
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ['png', 'jpg', 'jpeg','webp']
+            ext in supported_extensions
 
 @app.route("/", methods=['POST','GET'])
 def index():
@@ -42,37 +55,54 @@ def index():
         # check if the post request has the file part
         if 'file' not in request.files:
             flash('No file part')
+            print("No file part")
             return redirect(request.url)
         
         # Get the file from the request
         file = request.files['file']
         filename = file.filename
 
-        # Create a buffer containing the file contents
-        buffer = io.BytesIO()
-        file.save(buffer)
+        uploaded_image = Image.open(file)
+        #convert to jpg
+        uploaded_image = uploaded_image.convert('RGB')
+        #in memory file
+        buffer = io.BytesIO() 
+        uploaded_image.save(buffer,format = "JPEG")
         buffer.seek(0)
 
         if filename == '' or  not  allowed_file_type(filename):
             flash('No selected file')
+            print("No selected file")
             return redirect(request.url)
         
+        time0 = time.time()
+
         #Duplicate detection
         s3_files = s3.list_objects_v2(Bucket=BUCKET_NAME)['Contents']
-        uploaded_image = Image.open(buffer)
         for s3_file in s3_files:
+            print("Proccessing image: ",s3_file["Key"] )
+            if not allowed_file_type(s3_file['Key']):
+                continue
             # Download the file from S3
             s3_buffer = io.BytesIO()
             s3.download_fileobj(BUCKET_NAME, s3_file['Key'], s3_buffer)
-            s3_buffer.seek(0)
+            #s3_buffer.seek(0)
             existing_image = Image.open(s3_buffer)
+
             if are_duplicates_imgs(uploaded_image, existing_image):
-                print("Duplicates found, image in bucket, uploaded image",s3_file['Key'], filename )
+                print("Duplicates found, image in bucket: {}, uploaded image: {} ".format(s3_file['Key'], filename ))
+                time1 = time.time()
+                print("Time to detect duplicate: ", time1-time0)
                 return redirect(request.url)
+        time1 = time.time()
+        print("Time to check there is no duplicates: ", time1-time0)
+                
         # Upload the file to S3
         try:
-            print("Uploading : ",filename)
-            s3.upload_fileobj(buffer, BUCKET_NAME,filename)
+            #Change the name of the file and type
+            new_image_filename = str(len(s3_files)+1)+".jpg"
+            print("Uploading : ",new_image_filename)
+            s3.upload_fileobj(buffer, BUCKET_NAME,new_image_filename)
             message = 'File uploaded successfully'
         except NoCredentialsError:
             message = 'Credentials not available'
@@ -103,38 +133,8 @@ def get_random_image():
     random_object_url = s3.generate_presigned_url('get_object', Params = {'Bucket': BUCKET_NAME,'Key': random_object["Key"]}, ExpiresIn = 3600)
     return random_object_url
 
-def store_features(filename:str,image:Image):
-    """
-    filename: name of the image
-    image: image to store
 
-    Store the features of the image in the database
-    """
-    #Compute features
-    uploaded_image_features = compute_features(image)
-    # Add new feature vector to feature_vectors dict
-    FEATURE_VECTORS[filename] = uploaded_image_features.tolist()
-    with open(FEATURE_VECTORS_FILE, 'w') as f:
-        json.dump(FEATURE_VECTORS, f)
-    
-    # Upload updated feature vectors file to S3
-    updated_feature_vectors_buffer = io.BytesIO()
-    json.dump(FEATURE_VECTORS, updated_feature_vectors_buffer)
-    updated_feature_vectors_buffer.seek(0)
-    s3.upload_fileobj(updated_feature_vectors_buffer, BUCKET_NAME, FEATURE_VECTORS_FILE)
 
-    return uploaded_image_features
-    
-def download_feature_vectors():
-    # Load feature vectors file from S3
-    try:
-        s3.download_file(BUCKET_NAME, FEATURE_VECTORS_FILE, FEATURE_VECTORS_FILE)
-        with open(FEATURE_VECTORS_FILE, 'r') as f:
-            feature_vectors = json.load(f)
-    except:
-        feature_vectors = {}
-    
-    return feature_vectors
 
 #TUTORIALES 
 #https://hackersandslackers.com/flask-routes/
